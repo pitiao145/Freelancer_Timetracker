@@ -1,12 +1,15 @@
+import sys
+import datetime
 import tkinter as tk
 from tkinter import ttk
-from datetime import datetime
 
-from time_tracker import Task, LogEntry
 from google_sheets import Sheet
-from project import start_task, stop_task, calc_elapsed_time
+import time
+from time_tracker import Task, LogEntry
 from utilities import Stopwatch
 
+# Time format
+FMT = "%H:%M:%S"
 
 class Gui:
     def __init__(self, sheet):
@@ -80,7 +83,7 @@ class Gui:
         self.root.mainloop()
 
     def update_clock(self):
-        self.current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.clock_label.config(text=self.current_time)
         self.root.after(1000, self.update_clock)
 
@@ -105,9 +108,76 @@ class Gui:
         self.start_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.DISABLED)
 
-
+       
 def main():
-    Gui(Sheet())
+    if len(sys.argv) == 1:
+        # Initialise the work sheet
+        sheet = Sheet()
+
+        while True:
+            option = input(
+                "\nWhat do you want to do next?\n[1] Add new task\n[2] Start recording this task\n[3] Stop recording this task\n[4] See last task\n[5] See last log entry\n[6] Update sheet\n[7] Exit\n\n"
+            )
+            match option:
+                case "1":
+                    entry = create_entry(input("Task name: "))
+                case "2":
+                    start_task(entry)
+                case "3":
+                    stop_task(entry, sheet)
+                case "4":
+                    print(entry.task)
+                case "5":
+                    print(entry)
+                case "6":
+                    sheet.update_total_task_times()
+                case "7":
+                    sys.exit()
+                case _:
+                    print("This is not an option")
+                    continue
+    elif len(sys.argv) == 2 and sys.argv[1] == "GUI":
+        # Initialise the work sheet
+        sheet = Sheet()
+        # Start the GUI
+        interface = Gui(sheet)
+    else:
+        sys.exit("\nUsage: project.py <GUI>\n")
+
+
+# Calculate the time-difference between two points in time, and return the result as a timedelta.
+def calc_elapsed_time(t_start, t_stop):
+    tdelta = datetime.datetime.strptime(t_stop, FMT) - datetime.datetime.strptime(
+        t_start, FMT
+    )
+    return tdelta
+
+
+def create_entry(task):
+    task = Task(task)
+    entry = LogEntry(task)
+    print("\nTask created.\n")
+    return entry
+
+
+def start_task(entry):
+    entry.set_start_time()
+    print("\nTask started.\n")
+
+
+def stop_task(entry, sheet):
+    # Stop the counter and save the stop time
+    entry.set_stop_time()
+    elapsed = calc_elapsed_time(entry.start, entry.stop)
+    # Calculate elapsed time and save it to the task
+    print(f"\nTime elapsed: {elapsed}")
+    entry.task.addTime(elapsed)
+    # Add log entry to sheet
+    sheet.add_log_entry(entry)
+    time.sleep(2)
+    sheet.update_total_task_times()
+
+    return elapsed
 
 
 if __name__ == "__main__":

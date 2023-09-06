@@ -1,6 +1,4 @@
-import sys
 import datetime
-import google_sheets
 
 from time import localtime, strftime
 
@@ -91,12 +89,3 @@ class LogEntry:
             self._stop = stop
         else:
             raise ValueError("Incorrect format")
-
-
-## Functions
-# Calculate the time-difference between two points in time, and return the result as a str.
-def calc_elapsed_time(t_start, t_stop):
-    tdelta = datetime.datetime.strptime(t_stop, FMT) - datetime.datetime.strptime(
-        t_start, FMT
-    )
-    return tdelta
