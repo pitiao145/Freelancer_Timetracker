@@ -1,7 +1,7 @@
 import sys
 import datetime
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 from google_sheets import Sheet
 import time
@@ -92,8 +92,11 @@ class Gui:
         self.root.after(1000, self.update_timer)
 
     def start_task(self):
-        self.task = Task(self.new_task_entry.get())
-        self.entry = LogEntry(self.task)
+        try:
+            self.entry = create_entry(self.new_task_entry.get())
+        except ValueError:
+            messagebox.showinfo(title="Message", message="Please input a valid task name.")
+            return
         start_task(self.entry)
         self.sw.start()
         self.update_timer()
@@ -120,7 +123,14 @@ def main():
             )
             match option:
                 case "1":
-                    entry = create_entry(input("Task name: "))
+                    while True:
+                        try:
+                            entry = create_entry(input("Task name: "))
+                        except ValueError:
+                            print("Enter a valid name for the task.")
+                            continue
+                        else:
+                            break
                 case "2":
                     start_task(entry)
                 case "3":
@@ -132,7 +142,13 @@ def main():
                 case "6":
                     sheet.update_total_task_times()
                 case "7":
-                    sys.exit()
+                    # sys.exit()
+                    if entry.stop == "00:00:00":
+                        ans = input("There's a tasks currently running, are you sure you want to exit? (Y/N)")
+                        if ans == "No" or ans == "N" or ans == "n":
+                            continue
+                        else:
+                            sys.exit()
                 case _:
                     print("This is not an option")
                     continue
@@ -152,8 +168,10 @@ def calc_elapsed_time(t_start, t_stop):
     )
     return tdelta
 
-
+# Creates a log entry. Takes a new task's name as argument and returns an initialised entry object.
 def create_entry(task):
+    if task.strip().startswith("="):
+        raise ValueError("Your task's name shouldn't start with '='.")
     task = Task(task)
     entry = LogEntry(task)
     print("\nTask created.\n")

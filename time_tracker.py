@@ -32,7 +32,7 @@ class Task:
     # Setter for task name
     @name.setter
     def name(self, name: str):
-        if not name:
+        if not name.strip():
             raise ValueError("Fill in task description")
         self._name = name
 
