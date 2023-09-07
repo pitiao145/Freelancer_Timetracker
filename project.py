@@ -11,6 +11,7 @@ from utilities import Stopwatch
 # Time format
 FMT = "%H:%M:%S"
 
+
 class Gui:
     def __init__(self, sheet):
         self.sheet = sheet
@@ -95,7 +96,9 @@ class Gui:
         try:
             self.entry = create_entry(self.new_task_entry.get())
         except ValueError:
-            messagebox.showinfo(title="Message", message="Please input a valid task name.")
+            messagebox.showinfo(
+                title="Message", message="Please input a valid task name."
+            )
             return
         start_task(self.entry)
         self.sw.start()
@@ -111,7 +114,7 @@ class Gui:
         self.start_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.DISABLED)
 
-       
+
 def main():
     if len(sys.argv) == 1:
         # Initialise the work sheet
@@ -144,7 +147,9 @@ def main():
                 case "7":
                     # sys.exit()
                     if entry.stop == "00:00:00":
-                        ans = input("There's a tasks currently running, are you sure you want to exit? (Y/N)")
+                        ans = input(
+                            "There's a tasks currently running, are you sure you want to exit? (Y/N)"
+                        )
                         if ans == "No" or ans == "N" or ans == "n":
                             continue
                         else:
@@ -167,6 +172,7 @@ def calc_elapsed_time(t_start, t_stop):
         t_start, FMT
     )
     return tdelta
+
 
 # Creates a log entry. Takes a new task's name as argument and returns an initialised entry object.
 def create_entry(task):
