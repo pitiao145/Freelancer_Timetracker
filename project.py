@@ -146,14 +146,17 @@ def main():
                     sheet.update_total_task_times()
                 case "7":
                     # sys.exit()
-                    if entry.stop == "00:00:00":
-                        ans = input(
-                            "There's a tasks currently running, are you sure you want to exit? (Y/N)"
-                        )
-                        if ans == "No" or ans == "N" or ans == "n":
-                            continue
-                        else:
-                            sys.exit()
+                    try:
+                        if entry.stop == "00:00:00":
+                            ans = input(
+                                "There's a tasks currently running, are you sure you want to exit? (Y/N)"
+                            )
+                            if ans == "No" or ans == "N" or ans == "n":
+                                continue
+                            else:
+                                sys.exit()
+                    except UnboundLocalError:
+                        sys.exit()
                 case _:
                     print("This is not an option")
                     continue

@@ -127,7 +127,8 @@ class Sheet:
                 duration_parts = duration_str.split(":")
                 hours = int(duration_parts[0])
                 minutes = int(duration_parts[1])
-                duration = datetime.timedelta(hours=hours, minutes=minutes)
+                seconds = int(duration_parts[2])
+                duration = datetime.timedelta(hours=hours, minutes=minutes, seconds=seconds)
 
                 # Check if the name is already in the dictionary
                 if name in task_duration_totals:
