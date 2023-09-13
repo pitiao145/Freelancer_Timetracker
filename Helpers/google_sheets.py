@@ -1,8 +1,8 @@
 from __future__ import print_function
 
 import os.path
-import utilities
 import datetime
+import Helpers.utilities as utilities
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -13,8 +13,10 @@ from googleapiclient.errors import HttpError
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-# The ID and range of a sample spreadsheet.
-SPREADSHEET_ID = "1BOl1iaJd5VKFL7b9IuT3T7Apm8sTCMXGq4tDaBh2lMc"
+# The ID and range of a sample spreadsheet. Check if there is a google sheets link configured, otherwise start the setup GUI
+if id_check := utilities.get_sheet_id(utilities.get_current_link()) == "":
+    utilities.start_setup_GUI()
+SPREADSHEET_ID = utilities.get_sheet_id(utilities.get_current_link())
 CURRENT_MONTH = utilities.current_month()
 # Range for the date column
 RANGE_DATE = CURRENT_MONTH + "!A3:A100"
@@ -30,12 +32,13 @@ RANGE_ACTIVITIES_TOTAL_TIME = CURRENT_MONTH + "!H3:H100"
 
 class Sheet:
     # Initialise the work log template on the current month's tab.
-    def __init__(self):
+    def __init__(self, id=SPREADSHEET_ID):
+        self.id = id
         self.creds = None
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
-        if os.path.exists("Config/token.json"):
+        if os.path.exists("./Config/token.json"):
             self.creds = Credentials.from_authorized_user_file(
                 "Config/token.json", SCOPES
             )
@@ -60,6 +63,11 @@ class Sheet:
             print(f"Work sheet initialised. Current tab: {CURRENT_MONTH}")
         except HttpError as err:
             print(err)
+        else:
+            # Test if sheet id works, in case config.json has no value. Else the intialisation GUI will start
+            sheet_test = (
+                self.sheet.values().get(spreadsheetId=self.id, range="A1").execute()
+            )
 
     # Adds an entry to the activity log. Enters today's date, the name of the task and the start and stop time of the task.
     def add_log_entry(self, logEntry):
@@ -73,7 +81,7 @@ class Sheet:
         result = (
             self.sheet.values()
             .append(
-                spreadsheetId=SPREADSHEET_ID,
+                spreadsheetId=self.id,
                 range=RANGE_FULL_LOG,
                 valueInputOption="USER_ENTERED",
                 body=body,
@@ -91,7 +99,7 @@ class Sheet:
         # First get all the tasks and their respective durations from the spreadsheet
         all_tasks = (
             self.sheet.values()
-            .batchGet(spreadsheetId=SPREADSHEET_ID, ranges=range_names)
+            .batchGet(spreadsheetId=self.id, ranges=range_names)
             .execute()
         )
 
@@ -128,7 +136,9 @@ class Sheet:
                 hours = int(duration_parts[0])
                 minutes = int(duration_parts[1])
                 seconds = int(duration_parts[2])
-                duration = datetime.timedelta(hours=hours, minutes=minutes, seconds=seconds)
+                duration = datetime.timedelta(
+                    hours=hours, minutes=minutes, seconds=seconds
+                )
 
                 # Check if the name is already in the dictionary
                 if name in task_duration_totals:
@@ -145,17 +155,21 @@ class Sheet:
             else:
                 continue
 
-        return result
+        try:
+            return result
+        except UnboundLocalError:
+            print("There are no tasks yet today!")
+            return [{"task_name": "No tasks for today yet!", "duration": "00:00:00"}]
 
     # Updates the total task times in the spreadsheet
-    def update_total_task_times(self):
-        tasks = self.get_tasks_and_duration()
+    def update_total_task_times(self, date=str(datetime.date.today())):
+        tasks = self.get_tasks_and_duration(date)
 
         # First clear the current cells before writing the new data.
         result = (
             self.sheet.values()
             .clear(
-                spreadsheetId=SPREADSHEET_ID,
+                spreadsheetId=self.id,
                 range=RANGE_ACTIVITIES,
             )
             .execute()
@@ -177,17 +191,14 @@ class Sheet:
         body = {"valueInputOption": "USER_ENTERED", "data": data}
 
         result = (
-            self.sheet.values()
-            .batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body)
-            .execute()
+            self.sheet.values().batchUpdate(spreadsheetId=self.id, body=body).execute()
         )
 
         print("Today's tasks updated")
 
 
 def main():
-    sheet = Sheet()
-    sheet.update_total_task_times()
+    ...
 
 
 if __name__ == "__main__":

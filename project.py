@@ -2,22 +2,22 @@ import sys
 import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox
-
-from google_sheets import Sheet
 import time
-from time_tracker import Task, LogEntry
-from utilities import Stopwatch
+
+import Helpers.google_sheets as gs
+from Helpers.time_tracker import Task, LogEntry
+import Helpers.utilities as utilities
 
 # Time format
 FMT = "%H:%M:%S"
 
-
+# Define the graphical user interface for this app.
 class Gui:
     def __init__(self, sheet):
         self.sheet = sheet
         self.root = tk.Tk()
         self.root.title("Task Time Tracker")
-        self.root.geometry("300x200")  # Set the size to 200x200
+        self.root.geometry("350x200")  # Set the size to 450x300
 
         # Configure grid columns and rows to expand
         self.root.columnconfigure(0, weight=1)
@@ -35,15 +35,15 @@ class Gui:
         self.new_task_label = ttk.Label(
             self.root, text="New task:", font=("Helvetica", 12)
         )
-        self.new_task_label.grid(row=1, column=0, sticky="w", padx=10)
-        self.new_task_entry = ttk.Entry(self.root, width=20)
+        self.new_task_label.grid(row=1, column=0, padx=10)
+        self.new_task_entry = ttk.Entry(self.root, width=15)
         self.new_task_entry.grid(row=1, column=1, padx=10, pady=5)
 
         # Start and Stop Buttons
         self.start_button = ttk.Button(
             self.root, text="Start", command=self.start_task, style="Green.TButton"
         )
-        self.start_button.grid(row=2, column=0, padx=10, pady=5, sticky="e")
+        self.start_button.grid(row=2, column=0, padx=10, pady=5)
         self.stop_button = ttk.Button(
             self.root,
             text="Stop",
@@ -51,7 +51,7 @@ class Gui:
             state=tk.DISABLED,
             style="Red.TButton",
         )
-        self.stop_button.grid(row=2, column=1, padx=10, pady=5, sticky="e")
+        self.stop_button.grid(row=2, column=1, padx=10, pady=5)
 
         # Total Time Label
         self.total_time_label = ttk.Label(
@@ -59,7 +59,7 @@ class Gui:
         )
         self.total_time_label.grid(row=3, column=0, padx=10)
         # Initialize stopwatch and timer variable
-        self.sw = Stopwatch()
+        self.sw = utilities.Stopwatch()
         self.timer = tk.StringVar()
         self.timer.set("00:00:00")
         self.total_time_display = ttk.Label(
@@ -77,6 +77,23 @@ class Gui:
             "Green.TButton", foreground="green", font=("Helvetica", 12)
         )
         self.style.configure("Red.TButton", foreground="red", font=("Helvetica", 12))
+
+        ##Configuration window
+        # Configuration Section
+        self.configuration_frame = ttk.Frame(self.root)
+        self.configuration_frame.grid(row=0, column=1, pady=10, sticky="e")
+
+        # Current google sheets link
+        self.current_link = tk.StringVar()
+        self.current_link.set(utilities.get_current_link())
+
+        # Edit Button
+        self.edit_button = ttk.Button(
+            self.configuration_frame, text="Edit", command=self.open_editor, width=2.5)
+        self.edit_button.grid(row=0, column=2, padx=2, pady=0)
+
+        # Editor Window (separate Toplevel window)
+        self.editor_window = None
 
         # Update the clock
         self.update_clock()
@@ -114,11 +131,64 @@ class Gui:
         self.start_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.DISABLED)
 
+    def open_editor(self):
+        self.editor_window = tk.Toplevel(self.root)
+        self.editor_window.title("Edit Google Sheets Link")
+
+        # Display current Google Sheets link
+        self.current_link_label = ttk.Label(
+            self.editor_window, text="Current Google Sheets Link:"
+        )
+        self.current_link_label.grid(row=0, column=0, padx=10, sticky="w")
+
+        self.link_display = ttk.Label(
+            self.editor_window, textvariable=self.current_link, wraplength=400
+        )
+        self.link_display.grid(row=0, column=1, padx=10)
+
+        # Input Field for Google Sheets Link
+        self.link_entry = ttk.Entry(self.editor_window)
+        self.link_entry.grid(row=1, columnspan=2, sticky="ew", pady=10)
+
+        # Save Button
+        self.save_button = ttk.Button(
+            self.editor_window, text="Save", command=self.save_link
+        )
+        self.save_button.grid(row=2, column=1, sticky="w", padx=10, pady=10)
+
+    # Validate and save the new link
+    def save_link(self):
+        self.new_link_value = self.link_entry.get()
+        # Validate the new link here (e.g., regex)
+        try:
+            id = self.is_valid_link(self.new_link_value)
+        except ValueError:
+            # Display an error message to the user
+            messagebox.showerror(
+                title="Message", message="Google sheets link is not valid."
+            )
+            return
+        else:
+            self.current_link.set(self.new_link_value)
+            # Update the configuration file with the new link
+            utilities.save_link(self.new_link_value)
+            # Close the editor window
+            self.editor_window.destroy()
+
+    # Function to check if the link is valid. Return the sheetId if valid.
+    def is_valid_link(self, url):
+        utilities.get_sheet_id(url)
+        # if matches := re.search(r"^(?:https?://)?(?:www\.)?docs\.google\.com/spreadsheets/d/(\w+)(?:/.*)$", url.strip()):
+        #     sheetId = matches.group(1)
+        #     return sheetId
+        # else:
+        #     raise ValueError
+
 
 def main():
     if len(sys.argv) == 1:
         # Initialise the work sheet
-        sheet = Sheet()
+        sheet = gs.Sheet()
 
         while True:
             option = input(
@@ -143,13 +213,17 @@ def main():
                 case "5":
                     print(entry)
                 case "6":
-                    sheet.update_total_task_times()
+                    sheet.update_total_task_times(
+                        input(
+                            "For which day? Format YYYY-MM-DD (Leave blank if you want to update for today.)"
+                        )
+                    )
                 case "7":
                     # sys.exit()
                     try:
                         if entry.stop == "00:00:00":
                             ans = input(
-                                "There's a tasks currently running, are you sure you want to exit? (Y/N)"
+                                "There's a task currently running, are you sure you want to exit? (Y/N)"
                             )
                             if ans == "No" or ans == "N" or ans == "n":
                                 continue
@@ -162,7 +236,7 @@ def main():
                     continue
     elif len(sys.argv) == 2 and sys.argv[1] == "GUI":
         # Initialise the work sheet
-        sheet = Sheet()
+        sheet = gs.Sheet()
         # Start the GUI
         interface = Gui(sheet)
     else:
