@@ -11,13 +11,14 @@ import Helpers.utilities as utilities
 # Time format
 FMT = "%H:%M:%S"
 
+
 # Define the graphical user interface for this app.
 class Gui:
     def __init__(self, sheet):
         self.sheet = sheet
         self.root = tk.Tk()
         self.root.title("Task Time Tracker")
-        self.root.geometry("350x200")  # Set the size to 450x300
+        self.root.geometry("350x300")  # Set the size to 450x300
 
         # Configure grid columns and rows to expand
         self.root.columnconfigure(0, weight=1)
@@ -89,16 +90,39 @@ class Gui:
 
         # Edit Button
         self.edit_button = ttk.Button(
-            self.configuration_frame, text="Edit", command=self.open_editor, width=2.5)
+            self.configuration_frame, text="Edit", command=self.open_editor, width=2.5
+        )
         self.edit_button.grid(row=0, column=2, padx=2, pady=0)
 
         # Editor Window (separate Toplevel window)
         self.editor_window = None
 
+        ## Update total task times field
+        self.update_frame = ttk.Frame(self.root)
+        self.update_frame.grid(row=6, columnspan=2, pady=10)
+        # Update label
+        self.update_label = ttk.Label(
+            self.update_frame,
+            text="Update the total task times for date:",
+            font=("Helvetica", 12),
+        )
+        self.update_label.grid(row=0, column=0, padx=10, pady=10)
+        # Update input
+        self.update_input = ttk.Entry(self.update_frame, width=10)
+        self.update_input.grid(row=0, column=1, padx=10, pady=10)
+        # Update button
+        self.update_button = ttk.Button(
+            self.update_frame, text="Update", width=7, command=self.update_total_times
+        )
+        self.update_button.grid(row=1, columnspan=2, padx=10, pady=10)
+
         # Update the clock
         self.update_clock()
 
+        # Mainloop
         self.root.mainloop()
+
+    ## Class functions
 
     def update_clock(self):
         self.current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -178,11 +202,13 @@ class Gui:
     # Function to check if the link is valid. Return the sheetId if valid.
     def is_valid_link(self, url):
         utilities.get_sheet_id(url)
-        # if matches := re.search(r"^(?:https?://)?(?:www\.)?docs\.google\.com/spreadsheets/d/(\w+)(?:/.*)$", url.strip()):
-        #     sheetId = matches.group(1)
-        #     return sheetId
-        # else:
-        #     raise ValueError
+
+    def update_total_times(self):
+        date = self.update_input.get()
+        if date == "":
+            self.sheet.update_total_task_times()
+        else:
+            self.sheet.update_total_task_times(date)
 
 
 def main():
@@ -213,11 +239,13 @@ def main():
                 case "5":
                     print(entry)
                 case "6":
-                    sheet.update_total_task_times(
-                        input(
-                            "For which day? Format YYYY-MM-DD (Leave blank if you want to update for today.)"
-                        )
+                    date = input(
+                        "For which day? Format YYYY-MM-DD (Leave blank if you want to update for today.)"
                     )
+                    if date == "":
+                        sheet.update_total_task_times()
+                    else:
+                        sheet.update_total_task_times(date)
                 case "7":
                     # sys.exit()
                     try:
