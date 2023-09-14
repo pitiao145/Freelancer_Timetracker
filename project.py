@@ -212,6 +212,7 @@ class Gui:
 
 
 def main():
+    # Command line program
     if len(sys.argv) == 1:
         # Initialise the work sheet
         sheet = gs.Sheet()
@@ -247,7 +248,6 @@ def main():
                     else:
                         sheet.update_total_task_times(date)
                 case "7":
-                    # sys.exit()
                     try:
                         if entry.stop == "00:00:00":
                             ans = input(
@@ -255,13 +255,14 @@ def main():
                             )
                             if ans == "No" or ans == "N" or ans == "n":
                                 continue
-                            else:
-                                sys.exit()
                     except UnboundLocalError:
+                        sys.exit()
+                    else:
                         sys.exit()
                 case _:
                     print("This is not an option")
                     continue
+    # GUI program
     elif len(sys.argv) == 2 and sys.argv[1] == "GUI":
         # Initialise the work sheet
         sheet = gs.Sheet()
