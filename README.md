@@ -1,6 +1,6 @@
 # Freelancer time tracker
 
- ### Video Demo:
+ ### Video Demo: https://youtu.be/ZPnuyU2_EUw
  ### Short Description: 
 Time tracker that's able to record time spent on different tasks. It will save all the activities and their timestamps to a Google spreadsheet template. It also offers the possibility to get a list of the set of tasks performed on a day, and the total time spent on them. The program is implemented in an easy-to-use graphical user interface and allows for modifying the link of the spreadsheet to which the data should be written.
  ### Preview: 
